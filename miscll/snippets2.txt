@@ -1,0 +1,178 @@
+SKU, SKU_IDS = ads1['SKU_ID'].factorize()
+ads1["SKU_CODE"] = SKU
+coords = {"SKU": SKU_IDS}
+
+
+with pm.Model(coords = coords) as model:   
+    
+    # ids
+    sku_idx = pm.MutableData("sku_idx", ads1['SKU_CODE'].values)
+    #print(sku_idx)
+
+    inventory_idx = pm.MutableData('inventory_idx', ads1['LOG_INVENTORY'].values)
+    
+    # BBY Price
+    bby_price_idx = pm.MutableData('bby_price_idx', ads1['LOG_MODE_CURR_PRC_AMT'].values)
+
+    # competitor(s) price
+#    comp_price_flg_idx = pm.MutableData('comp_price_flg_idx', ads['COMP_PRC_AVL_FLG'].values)
+    comp_price_idx = pm.MutableData('comp_price_idx', ads1['LOG_RLVNT_CMPTR_PRC_FF'].values)
+    
+    # seasonality: Holidays
+    pre_christmas_idx = pm.MutableData("pre_christmas_idx", ads1['PRE_CHRISTMAS_WK_FLG'].values)
+    independence_idx = pm.MutableData("independence_idx", ads1['INDEPENDENCE_FLG'].values)
+    labor_idx = pm.MutableData("labor_idx", ads1['LABOR_FLG'].values)
+    memorial_idx = pm.MutableData("memorial_idx", ads1['MEMORIAL_FLG'].values)
+    pre_newyears_idx = pm.MutableData("pre_newyears_idx", ads1['PRE_NEWYEARS_WK_FLG'].values)
+    blackfriday_idx = pm.MutableData("blackfriday_idx", ads1['BLACKFRIDAY_FLG'].values)
+#    easter_idx = pm.MutableData("easter_idx", ads['EASTER_FLG'].values)
+    veterans_idx = pm.MutableData("veterans_idx", ads1['VETERANS_FLG'].values)
+    pre_thanksgiving_idx = pm.MutableData("pre_thanksgiving_idx", ads1['THANKSGIVING_FLG'].values)
+    
+    # seasonality: Week days
+    sat_idx = pm.MutableData("sat_idx", ads1['SAT_FLG'].values)
+    mon_thu_idx = pm.MutableData("mon_thu_idx", ads1['MON_TUE_WED_THU_FLG'].values)
+    
+    # seasonality: Quarters
+    #q1_idx = pm.MutableData("q1_idx", ads['Q1_FLG'].values)
+    q2_idx = pm.MutableData("q2_idx", ads1['Q2_FLG'].values)
+    q3_idx = pm.MutableData("q3_idx", ads1['Q3_FLG'].values)
+    q4_idx = pm.MutableData("q4_idx", ads1['Q4_FLG'].values)
+    
+    # Macroeconomics
+    me_cci_idx = pm.MutableData("me_cci_idx", ads1['ME_CCI'].values)
+    me_unemployment_idx = pm.MutableData("me_unemployment_idx", ads1['ME_UNEMPLOYMENT'].values)
+     
+    ## Define Priors
+
+    # hierarchical effects: intercept priors
+    mu_a = pm.Normal("mu_a", mu=0.0, sigma=1.0, dims='SKU')
+    sigma_a = pm.Exponential("sigma_a", 1.0)
+    # hierarchical (random) effects: price priors
+    mu_bby_prc = pm.Normal("mu_bby_prc", mu=0.0, sigma=1.0, dims='SKU')
+    sigma_bby_prc = pm.Exponential("sigma_bby_prc", 1.0)
+    # hierarchical effects: competitor price priors
+    mu_comp_prc = pm.Normal("mu_comp_prc", mu=0.0, sigma=1.0, dims='SKU')
+    sigma_comp_prc = pm.Exponential("sigma_comp_prc", 1.0)
+
+        
+    # intercepts
+    alpha = pm.Normal("alpha", mu=mu_a, sigma=sigma_a)
+    
+    beta_inventory = pm.Normal("beta_inventory", mu=0.0, sigma=1.0, dims='SKU')
+    beta_bby_price = pm.Normal("beta_bby_price", mu=mu_bby_prc, sigma=sigma_bby_prc, dims='SKU')
+    beta_comp_price = pm.Normal("beta_comp_price", mu=mu_comp_prc, sigma=sigma_comp_prc, dims='SKU')
+#    beta_com_price_flg = pm.Normal("beta_com_price_flg", mu=0.0, sigma=1.0, dims='SKU')
+    
+    beta_pre_christmas = pm.Normal("beta_pre_christmas", mu=0.0, sigma=1.0)
+    beta_independence = pm.Normal("beta_independence", mu=0.0, sigma=1.0)
+    beta_labor = pm.Normal("beta_labor", mu=0.0, sigma=1.0)
+    beta_memorial = pm.Normal("beta_memorial", mu=0.0, sigma=1.0)
+    beta_pre_newyears = pm.Normal("beta_pre_newyears", mu=0.0, sigma=1.0)
+    beta_pre_thanksgiving = pm.Normal("beta_pre_thanksgiving", mu=0.0, sigma=1.0)
+    beta_blackfriday = pm.Normal("beta_blackfriday", mu=0.0, sigma=1.0)
+#    beta_easter = pm.Normal("beta_easter", mu=0.0, sigma=1.0)
+    beta_veterans = pm.Normal("beta_veterans", mu=0.0, sigma=1.0)
+
+    beta_sat = pm.Normal("beta_sat", mu=0.0, sigma=1.0)
+    beta_mon_thu = pm.Normal("beta_mon_thu", mu=0.0, sigma=1.0)
+
+    beta_q2 = pm.Normal("beta_q2", mu=0.0, sigma=1.0)
+    beta_q3 = pm.Normal("beta_q3", mu=0.0, sigma=1.0)
+    beta_q4 = pm.Normal("beta_q4", mu=0.0, sigma=1.0)
+    beta_cci = pm.Normal("beta_cci", mu=0.0, sigma=1.0)
+    beta_unemployment = pm.Normal("beta_unemployment", mu=0.0, sigma=1.0)   
+
+    # sigma: model error
+    sigma_y = pm.Exponential("sigma_y", 1.0)
+
+    #expected value
+    y_hat = alpha[sku_idx] + \
+            beta_inventory[sku_idx] * inventory_idx + \
+            beta_bby_price[sku_idx] * bby_price_idx + \
+            beta_comp_price[sku_idx] * comp_price_idx + \
+            beta_pre_christmas * pre_christmas_idx + \
+            beta_independence * independence_idx + \
+            beta_labor * labor_idx + \
+            beta_memorial * memorial_idx + \
+            beta_pre_newyears * pre_newyears_idx + \
+            beta_pre_thanksgiving * pre_thanksgiving_idx + \
+            beta_blackfriday * blackfriday_idx + \
+            beta_veterans * veterans_idx + \
+            beta_sat * sat_idx + \
+            beta_mon_thu * mon_thu_idx + \
+            beta_q2 * q2_idx + \
+            beta_q3 * q3_idx + \
+            beta_q4 * q4_idx + \
+            beta_cci * me_cci_idx + \
+            beta_unemployment * me_unemployment_idx 
+
+
+    #likelihood
+    y_like = pm.Normal("y_like", mu=y_hat, sigma=sigma_y, observed = ads1['LOG_UNITS_SOLD'].values)
+        
+    model_trace = pm.sample(draws = 6000, tune = 600, discard_tuned_samples = True, target_accept = 0.97)
+ 
+az.summary(model_trace)
+#az.plot_trace(model_trace)
+az.plot_posterior(model_trace, var_names=["beta_bby_price"])
+
+RANDOM_SEED = 8294
+with model:
+    _ = pm.sample_posterior_predictive(model_trace, extend_inferencedata=True, random_seed = RANDOM_SEED)
+
+az.plot_ppc(model_trace, num_pp_samples = 3000)
+
+Actual vs predicted
+
+y_true = ads1['LOG_UNITS_SOLD'].values
+
+y_pred_mean = model_trace['posterior_predictive']['y_like'].mean(dim=("chain", "draw"))
+y_pred = y_pred_mean.data
+
+y_pred_cdi = model_trace['posterior_predictive']['y_like'].quantile([.05, .95], dim=("chain", "draw")).data
+
+## Y-pred vs Y-true Plot
+_ = plt.scatter(y_true, y_pred, alpha=0.2)
+_ = plt.plot(range(11), range(11), color='red')
+_ = plt.xlabel("Actual (log)")
+_ = plt.ylabel("Predicted (log)")
+_ = plt.title("Actual  vs Predicted ")
+
+# sns.scatterplot(x=y_true, y=y_pred,) # hue="time", style="time")
+pearson_correlation = np.corrcoef(y_true, y_pred)[0,1]
+print('Pearson correlation:', round(pearson_correlation,3))
+print('R2:', round(pearson_correlation**2, 3))
+plt.show()
+
+train_data = ads1.copy(deep=True)
+train_data['y_pred_mean'] = y_pred
+
+def mape(y_true, y_pred):
+    return np.mean(np.abs((y_true - y_pred) / y_pred)) * 100
+
+mape_base_df = train_data.groupby(['SKU_ID']).apply(lambda group: mape(group['LOG_UNITS_SOLD'], group['y_pred_mean'])).reset_index()
+mape_base_df.columns = ['SKU_ID', 'MAPE']
+mape_base_df['accuracy'] = 100 - mape_base_df['MAPE']
+mape_base_df.sort_values('accuracy', ascending = True, inplace = True)
+mape_base_df.shape
+
+mape_df = train_data.groupby(['SKU_ID']).apply(lambda group: mape(group['LOG_UNITS_SOLD'], group['y_pred_mean'])).reset_index()
+mape_df.columns = ['SKU_ID', 'MAPE']
+mape_df['accuracy'] = 100 - mape_df['MAPE']
+mape_df.sort_values('accuracy', ascending = True, inplace = True)
+
+#_ = plt.hist(mape_df['MAPE'], bins=50, color='blue', alpha=0.75)
+#_ = plt.title('Histogram of MAPE')
+#_ = plt.xlabel('MAPE')
+#_ = plt.ylabel('Frequency')
+#_ = plt.grid(True)
+
+
+#mape_df[mape_df['MAPE'] < 10]
+
+print(mape_df)
+
+
+
+

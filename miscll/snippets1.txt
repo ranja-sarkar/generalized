@@ -1,0 +1,286 @@
+
+>> df['UNITS_SOLD'].autocorr(lag = 7)
+
+>> sns.hisplot(df[''], kde = True, hue = '')
+
+
+df = pd.read_csv('Class behavior-159.csv')
+data = df.copy()
+data['CALENDAR_DT'] = pd.to_datetime(data['CALENDAR_DT'])
+
+data = data.set_index("CALENDAR_DT")
+data = data.sort_index()
+data.info()
+
+>> data.dropna(subset = ['CPI', 'MIN_CMPTR_PRC', 'MAX_CMPTR_PRC'], inplace = True)
+
+fig, ax = plt.subplots(figsize = (10, 4))
+sns.lineplot(data[['MIN_CMPTR_PRC','MAX_CMPTR_PRC']], ax = ax)
+plt.xticks(rotation = 60)
+plt.title('159')
+plt.grid()
+plt.show()
+
+fig, ax = plt.subplots(figsize = (10, 4))
+sns.lineplot(data['CPI'], ax = ax)
+plt.xticks(rotation = 60)
+plt.title('159')
+plt.grid()
+plt.show()
+
+import pandas as pd  
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import RepeatedKFold
+from numpy import absolute, mean, std, arange
+
+from sklearn.feature_selection import SelectFromModel
+from sklearn import linear_model
+
+from sklearn.model_selection import GridSearchCV
+import math
+from sklearn.metrics import mean_squared_error, r2_score
+
+from warnings import filterwarnings
+filterwarnings('ignore')
+import pymc
+import arviz as az
+import xarray as xr
+>> print(f"Running on PyMC v{pymc.__version__}")
+
+
+#x1 = dff['MODE_CURR_PRC_AMT_log'].values
+#x2 = dff['RLVNT_CMPTR_PRC_FF_log'].values
+#y12 = dff['log_UNITS_SOLD'].values
+#slope = [-0.75, 0.5]
+
+#bglm = pymc.Model()
+#with bglm:
+    #Define priors
+#    intercept = pymc.Normal('intercept', mu = 0, sigma = 10.0)  #alpha
+#    slopes = pymc.Normal('slopes', mu = 0, sigma = 10.0, shape = 2) #beta
+#    sigma = pymc.HalfNormal('sigma', sigma = 1.0)
+
+#    mu1 = intercept + slope[0]*x1 + slope[1]*x2  #expected value
+
+#    y = pymc.Normal("y", mu = mu1, sigma = sigma, observed = y12)  #likelihood
+        
+    # obtain initial guess/value via MAP
+#    start = pymc.find_MAP(method = 'Powell')
+
+#    trace1 = pymc.sample(4000, start = start)
+#az.plot_trace(trace1)
+#az.summary(trace1)
+#az.plot_posterior(trace1)
+
+x1 = dff['MODE_CURR_PRC_AMT_log'].values
+x2 = dff['RLVNT_CMPTR_PRC_FF_log'].values
+y12 = dff['log_UNITS_SOLD'].values
+slope = [-1.0, 0.5]
+
+bglm = pymc.Model()
+with bglm:
+    #Priors
+    intercept = pymc.Normal('intercept', mu = 0, sigma = 1.0)  #alpha
+    slopes = pymc.Normal('slopes', mu = 0, sigma = 1.0, shape = 2) #beta
+    sigma = pymc.HalfNormal('sigma', sigma = 1.0)
+
+    mu1 = intercept + slope[0]*x1 + slope[1]*x2  #expected value
+
+    y = pymc.Normal("y", mu = mu1, sigma = sigma, observed = y12)  #likelihood
+        
+    trace_mc1 = pymc.sample(4000, tune = 400, discard_tuned_samples = True)
+
+
+#summary_df = pymc.summary(trace)
+#predictions = summary_df.loc['alpha','mean'] + summary_df.loc['beta__0','mean']*X1 + summary_df.loc['beta__1','mean']*X2 + np.random.randn(size)*summary_df.loc['sigma','mean']
+#upper_limit = summary_df.loc['alpha','hpd_97.5'] + summary_df.loc['beta__0','hpd_97.5']*X1 + summary_df.loc['beta__1','hpd_97.5']*X2 + np.random.randn(size)*summary_df.loc['sigma','hpd_97.5']
+#lower_limit = summary_df.loc['alpha','hpd_2.5'] + summary_df.loc['beta__0','hpd_2.5']*X1 + summary_df.loc['beta__1','hpd_2.5']*X2 + np.random.randn(size)*summary_df.loc['sigma','hpd_2.5']
+
+#plt.plot(predictions, label='Predictions')
+#plt.plot(upper_limit, label='Upper Limit')
+#plt.plot(lower_limit, label='Lower Limit')
+#plt.plot(Y, label='Actual')
+#plt.legend()
+#plt.show()
+
+#from scipy import optimize
+#x1 = dff['MODE_CURR_PRC_AMT_log'].values
+#x2 = dff['RLVNT_CMPTR_PRC_FF_log'].values
+#y12 = dff['log_UNITS_SOLD'].values
+#slope = [-0.75, 0.5]
+
+#bglm = pymc.Model()
+#with bglm:
+#    #Define priors
+#    intercept = pymc.Normal('intercept', mu = 0, sigma = 10.0)  #alpha
+#    slopes = pymc.Normal('slopes', mu = 0, sigma = 10.0, shape = 2) #beta
+#    sigma = pymc.HalfNormal('sigma', sigma = 1.0)
+
+#    mu1 = intercept + slope[0]*x1 + slope[1]*x2  #expected value
+
+    y = pymc.Normal("y", mu = mu1, sigma = sigma, observed = y12)  #likelihood
+        
+    # obtain initial guess/value via MAP
+    start = pymc.find_MAP(method = 'Powell')
+
+    #instantiate sampler
+    #step = pymc.NUTS(scaling = start)
+
+    trace1 = pymc.sample(2000, start = start)
+
+>> az.plot_pair(trace1, kind = 'kde') 
+
+#x1 = dff['MODE_CURR_PRC_AMT_log'].values
+#x2 = dff['RLVNT_CMPTR_PRC_FF_log'].values
+#x3 = dff['WEEKEND_FLG'].values
+#x4 = dff['INDEPENDENCE'].values
+#x6 = dff['7829053_CURR_PRC_log'].values
+#x7 = dff['CCI_log'].values
+#x8 = dff['INVENTORY_log'].values
+
+#y_obs2 = dff['log_UNITS_SOLD'].values
+#slope = [-0.75, 0.5, 0.2, -0.2, -0.5, 1.0, 0.3]
+
+#bglm = pymc.Model()
+#with bglm:
+    # Priors
+#    intercept = pymc.Normal('intercept', mu = 0, sigma = 1.0)  #alpha
+#    slopes = pymc.Normal('slopes', mu = 0, sigma = 1.0, shape = 7) #beta
+#    sigma = pymc.HalfNormal('sigma', sigma = 1)
+
+#    mu1 = intercept + slope[0]*x1 + slope[1]*x2 + slope[2]*x3 + slope[3]*x4 + slope[4]*x6 + slope[5]*x7 + slope[6]*x8 #expected value
+
+#    y = pymc.Normal("y", mu = mu1, sigma = sigma, observed = y_obs)  #likelihood
+        
+#    trace22 = pymc.sample(2000, tune = 400, discard_tuned_samples = True)
+
+---------------------
+
+data['RLVNT_CMPTR_PRC_FF_log'] = np.log(data['RLVNT_CMPTR_PRC_FF'])
+data['log_PRC_CMPTR'] = data['COMP_REACTION_FLG']*data['RLVNT_CMPTR_PRC_FF_log'] #Competitor
+
+data['MODE_CURR_PRC_AMT_log'] = np.log(data['MODE_CURR_PRC_AMT'])
+data['log_PRC_PROMO'] = data['PROMO_FLG']*data['MODE_CURR_PRC_AMT_log'] #Promotion
+
+drop_cols = ['PROMO_FLG', 'COMP_REACTION_FLG']
+dff = data.drop(drop_cols, axis = 1)
+dff.info()
+
+dff['SKU_ID'] = dff['SKU_ID'].astype(str)
+dff['INVENTORY'] = dff['INVENTORY'].astype(float)
+
+#Dropping christmas, thanksgiving, easter for closed retail stores
+drop_cols = ['CHRISTMAS', 'THANKSGIVING', 'EASTER',
+            ]
+dff = dff.drop(drop_cols, axis = 1)
+dff.info()
+
+dff['CCI_log'] = np.log(dff['CCI'])
+dff['log_retail_total_sales'] = np.log(dff['retail_total_sales'])
+dff['INVENTORY_log'] = np.log(dff['INVENTORY'])
+dff['log_UNITS_SOLD'] = np.log(dff['UNITS_SOLD'])
+dff['NET_PRC_MATCH_ERODE_AMT_log'] = np.log(dff['NET_PRC_MATCH_ERODE_AMT'])
+dff.info()
+
+#pd.DataFrame(dff.describe().T)
+#dff = dff.drop(['NET_PRC_MATCH_ERODE_AMT','NET_PRC_MATCH_ERODE_AMT_log'], axis =  1) 
+
+#plt.plot(dff['log_UNITS_SOLD'])
+#plt.ylabel('log(UNITS SOLD)')
+#plt.grid()
+#plt.show()
+
+prices = ['log_UNITS_SOLD','MODE_CURR_PRC_AMT_log', 'RLVNT_CMPTR_PRC_FF_log', 'INVENTORY_log'] 
+dff[prices].corr()
+
+#Defining target and regressors
+y = dff['log_UNITS_SOLD'] #target
+x = dff.drop(columns = ['SKU_ID', 'log_UNITS_SOLD', 'UNITS_SOLD', 'INVENTORY', 'MODE_CURR_PRC_AMT',
+                        'CCI', 'retail_total_sales','RLVNT_CMPTR_PRC_FF'])
+print(x.columns.to_list())
+
+#RIDGE REGRESSION
+estimator = linear_model.Ridge(alpha = 1.0) #default
+featureSelect = SelectFromModel(estimator)
+featureSelect.fit(x,y)
+x.columns[featureSelect.get_support()]
+
+model = linear_model.Ridge()
+cv = RepeatedKFold(n_splits = 10, n_repeats = 3, random_state = 1)
+grid = dict()
+
+grid['alpha'] = arange(0, 1, 0.005)
+search = GridSearchCV(model, grid, scoring = 'neg_mean_absolute_error', cv = cv, verbose = False)
+res =search.fit(x,y)
+print('MAE: %.4f' % res.best_score_)
+print('Config: %s' % res.best_params_)
+
+estimator = linear_model.Ridge(alpha = 0.001) #linear_model.Lasso() #linear_model.ElasticNet()
+featureSelect = SelectFromModel(estimator)
+featureSelect.fit(x,y)
+x.columns[featureSelect.get_support()]
+
+#ff = pd.DataFrame(x1.columns, columns = ['Features'])
+#cc = pd.DataFrame(results1.coef_, columns = ['Coefficients'])
+#pd.concat([ff, cc], axis = 1)
+
+#import seaborn as sns
+#sns.histplot(residuals, kde = True, label = 'Residual plot')
+#plt.legend()
+
+y = dff['log_UNITS_SOLD'] #target
+x = dff[['WEEKEND_FLG', 'INDEPENDENCE', 'NEWYEARS', '6381829_CURR_PRC_log', '7829053_CURR_PRC_log',
+       'MODE_CURR_PRC_AMT_log', 'CCI_log', 'INVENTORY_log'
+        ]] #regressors
+
+--------------------------
+
+feat = ['MODE_CURR_PRC_AMT_log', 'RLVNT_CMPTR_PRC_FF_log']
+target = ['log_UNITS_SOLD']
+
+#Train-test split
+test_start = '2023-05-01'
+test_end = '2023-07-31'
+
+tf = dff.copy()
+tf['const'] = 1
+tf = tf.reset_index()
+tf.head()
+
+feat += ['const']
+train = tf[ tf.CALNDR_DT < test_start]
+test = tf[ (tf.CALNDR_DT >= test_start) & (tf.CALNDR_DT <= test_end)]
+
+X_train = train[feat]
+X_test = test[feat]
+y_train = train[target]
+y_test = test[target]
+
+print('Training Dataset: ', X_train.shape)
+print('Test Dataset: ', X_test.shape)
+print('Y-Training Dataset: ', y_train.shape)
+print('Y-Test Dataset: ', y_test.shape)
+
+import statsmodels.api as sm
+from statsmodels.tools.tools import add_constant
+
+X_train = X_train[feat]
+#X_train = sm.add_constant(X_train)  # Add a constant term for the intercept
+#y = df[target]
+model = sm.OLS(y_train, X_train).fit()
+print(model.summary())
+
+#X_test = sm.add_constant(X_test, has_consta)
+y_pred = model.predict(X_test)
+#y_test = test_data[target]
+
+mse = mean_squared_error(y_test, y_pred)
+print(f"Mean Squared Error: {mse}")
+
+rmse = np.sqrt(mse)
+print(f"Root Mean Squared Error: {rmse}")
+
+
